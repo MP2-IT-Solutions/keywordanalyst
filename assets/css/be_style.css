@@ -1,0 +1,182 @@
+.oneWordWrapper{
+	float:left;
+	width:232px;
+	padding:0px;
+	float:right;
+	font-size:9px;
+	
+}
+
+.tl_left{
+	float:left;
+	padding-bottom:5px;
+	padding-top:3px;
+}
+
+.line{
+	border-top:1px solid #eee;
+}
+
+.tl_file img, .tl_folder img{
+	margin-bottom:-4px;
+}
+
+.tl_folder{
+	padding-top:2px;
+	min-height:22px;
+	margin-top:30px;
+	border-top: 1px solid #e9e9e9;
+}
+
+.tl_folder .tl_left{
+	width:100%!important;
+	
+}
+.tl_folder .tl_left .oneWordWrapper{
+margin-right:24px;
+}
+.tl_folder .tl_left .oneWordWrapper span{
+	background-color:transparent!important;
+	font-size:11px;
+	font-weight:bold;
+}
+
+.oneWordWrapper span{
+	display:inline-block;
+	width:76px;
+	margin-top: 7px;
+	line-height: 11px;
+	overflow:hidden;
+	text-align:center;
+	margin-left:1px;
+}
+
+.rank1{
+	background-color:#bfd2ef!important;
+}
+
+.rank2{
+	background-color:#d6e5fb!important;
+}
+
+.rank3{
+	background-color:#e7f0fd!important;
+	margin-right:0px;
+}
+
+.info{
+	float:right;
+	width:20px;
+}
+
+.colKeyword, .colSpecial, .colCount, .colDensity{
+	float:left;
+	padding:5px 10px;
+	border-right:1px solid #eee;
+}
+
+.colKeyword{
+	width:380px;
+}
+
+.colSpecial{
+	width:120px;
+	text-align:center;
+}
+
+.colCount{
+	width:65px;
+	text-align:center;
+}
+
+.colDensity{
+	width:65px;
+	text-align:center;
+	border-right:0px;
+}
+
+.lineWrapper{
+	border:1px solid #eee;
+	border-top:0px;
+}
+
+.lineWrapper.header{
+	margin-top:15px;
+	background-color:#f2f2f2;
+	border-top:1px solid #eee;
+	padding:5px 0;
+}
+
+.colSpecial span{
+	font-size:8px;
+	text-transform:uppercase;	
+	padding:2px;
+	-moz-border-radius:     2px;
+	-webkit-border-radius:  2px;
+	-khtml-border-radius:   2px;
+	border-radius:          2px;
+}
+
+.colSpecial .title{
+	background-color:#A5D3FF;
+}
+
+.colSpecial .alias{
+	background-color:#FCFF84;
+}
+
+.colSpecial .description{
+	background-color:#CAFFA8;
+}
+
+.popWrapper{
+	padding:10px;
+}
+
+.headerRowLeft{
+	float:left;
+	width:100px;
+	font-weight:bold;
+	padding-left:10px;
+}
+
+.headerRowRight{
+	float:left;
+	width:580px;
+}
+
+.headerRow{
+	padding:7px 0;
+	border:1px solid #eee;
+	border-top:0px;
+}
+
+.headerRow.first{
+	border-top:1px solid #eee;
+	background-color:#f2f2f2;
+}
+
+.tl_left{
+	width:auto!important;
+}
+
+a.info{
+	padding: 4px;
+	padding-right: 0px;
+}
+
+#main{
+	padding-bottom:25px;
+}
+
+.more{
+	cursor:pointer;
+	background-color:#eee;
+	-moz-border-radius:     2px;
+	-webkit-border-radius:  2px;
+	-khtml-border-radius:   2px;
+	border-radius:          2px;
+	padding:0 2px;
+	font-weight:bold;
+	
+}

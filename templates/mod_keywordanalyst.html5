@@ -1,0 +1,99 @@
+<?php 
+
+?>
+
+
+
+<?php if($this->pagetree): ?>
+	<?php echo $this->pagetree; ?>
+<?php elseif($this->title != ""): ?>
+	
+	<? #echo "<pre>"; $this->showTemplateVars(); echo "</pre>"; ?>
+<div class="popWrapper">
+	<div class="headerWrapper"> 
+		<div class="headerRow first">
+			<div class="headerRowLeft">
+				Title:
+			</div>
+			<div class="headerRowRight">
+				<?php echo $this->title; ?>
+			</div>
+			<div class="clear"></div>
+		</div>
+		<div class="headerRow">
+			<div class="headerRowLeft">
+				Alias:
+			</div>
+			<div class="headerRowRight">
+				<?php echo $this->alias; ?>.html
+			</div>
+			<div class="clear"></div>
+		</div>
+		<div class="headerRow">
+			<div class="headerRowLeft">
+				Description:
+			</div>
+			<div class="headerRowRight">
+				<?php echo $this->description; ?>
+			</div>
+			<div class="clear"></div>
+		</div>
+		<div class="headerRow">
+			<div class="headerRowLeft">
+				Text:
+			</div>
+			<div class="headerRowRight">
+				<?php if(strlen($this->text) > 750): ?>
+					<?php echo substr($this->text,0,750); ?>
+					<span class="more" onclick="this.style.display = 'none'; document.getElementById('restText').style.display = 'inline';">...</span>
+					<span class="text" id="restText" style="display:none;"><?php echo substr($this->text,750); ?></span>
+				<?php else: ?>
+					<?php echo $this->text; ?>
+				<?php endif; ?>
+			</div>
+			<div class="clear"></div>
+		</div>
+	</div>
+	<div class="clear"></div>
+
+	<?php foreach($this->keywords as $key): ?>
+		<?php $limit = 0; ?>	
+		
+		
+		<div class="lineWrapper header">
+			<div class="colKeyword"><b>Keywords (<?php echo ++$kw; ?>x)</b></div>
+			<div class="colSpecial"><b>Special</b></div>
+			<div class="colCount"><b>Counts</b></div>
+			<div class="colDensity"><b>Density</b></div>
+			<div class="clear"></div>
+		</div>
+
+		<?php foreach($key as $name => $values): ?>
+			<?php if($limit++ == 20 || $values[0] < 2) break; ?>
+			<div class="lineWrapper">
+				<div class="colKeyword"><?php echo $name; ?></div>
+				<div class="colSpecial">
+					&nbsp;
+					<?php if(in_array($name, $this->titleArr) || (strtolower($this->title) != str_replace($name,"",strtolower($this->title)) && $kw > 1)): ?>
+						<span class="title">Title</span>
+					<?php endif; ?>
+					<?php if(in_array($name, $this->aliasArr) || (strtolower($this->alias) != str_replace(str_replace(" ","-",$name),"",strtolower($this->alias)) && $kw > 1)): ?>
+						<span class="alias">Alias</span>
+					<?php endif; ?>
+					<?php if(in_array($name, $this->descrArr) || (strtolower($this->description) != str_replace($name,"",strtolower($this->description)) && $kw > 1)): ?>
+						<span class="description">Descr</span>
+					<?php endif; ?>
+				</div>
+				<div class="colCount"><?php echo $values[0]; ?></div>
+				<div class="colDensity"><?php echo $values[1]; ?></div>
+				<div class="clear"></div>
+			</div>
+
+		<?php endforeach; ?>
+	<?php endforeach; ?>
+</div>
+
+<?php else: ?>
+	kein Seitenbaum angelegt	
+<?php endif; ?> 
+ 

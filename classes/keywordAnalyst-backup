@@ -1,0 +1,367 @@
+<?php
+
+/**
+ * Contao Open Source CMS
+ *
+ * Copyright (c) 2005-2014 Leo Feyer
+ *
+ * @package   keywordanalyst
+ * @author    Georg Lugmayr
+ * @license   GNU/LGPL
+ * @copyright Georg Lugmayr
+ */
+
+
+/**
+ * Namespace
+ */
+namespace keywordanalyst;
+
+
+/**
+ * Class keywordAnalyst
+ *
+ * @copyright  Georg Lugmayr
+ * @author     Georg Lugmayr
+ * @package    Devtools
+ */
+class keywordAnalyst extends \BackendModule
+{
+
+	/**
+	 * Template
+	 * @var string
+	 */
+	protected $strTemplate = 'mod_keywordanalyst';
+	
+
+	/**
+	 * Generate the module
+	 */
+	protected function compile()
+	{
+		
+		// GENERATE DETAIL-PAGE
+		if($this->Input->get('details'))
+		{
+			$objPage = $this->Database->prepare("SELECT id, alias, title, pageTitle, description FROM tl_page WHERE id=?")
+								  ->limit(1)
+								  ->execute($this->Input->get('details'));
+								  
+			$data = $this->getDisplayedText($this->Input->get('details'),$objPage->pageTitle,$objPage->alias,$objPage->description,true);
+			
+			if($objPage->pageTitle == "")
+			{
+				$objPage->pageTitle = $objPage->title;
+			}
+			$this->Template->title = $objPage->pageTitle;
+			$this->Template->alias = $objPage->alias;
+			$this->Template->description = $objPage->description;
+			$this->Template->keywords = $data[0];
+			$this->Template->text = $data[1];
+			$this->Template->titleArr = explode(" ",strtolower($objPage->pageTitle));
+			$this->Template->aliasArr = explode("-",strtolower($objPage->alias));
+			$this->Template->descrArr = explode(" ",strtolower($objPage->description));
+		}
+		
+		//GENERATE PAGETREE
+		else
+		{
+			$html = $this->renderPagetree(1,-20,false,false);
+			$this->Template->pagetree = $html;
+		}
+	}
+	
+	/**
+	 * Recursively render the pagetree
+	 * @param int
+	 * @param integer
+	 * @param boolean
+	 * @param boolean
+	 * @return string
+	 */
+	protected function renderPagetree($id, $intMargin, $protectedPage=false, $blnNoRecursion=false)
+	{
+		static $session;
+		$session = $this->Session->getData();
+
+		$flag = substr($this->strField, 0, 2);
+		$node = 'tree_' . $this->strTable . '_' . $this->strField;
+		$xtnode = 'tree_' . $this->strTable . '_' . $this->strName;
+
+		// Get the session data and toggle the nodes
+		if (\Input::get($flag.'tg'))
+		{
+			$session[$node][\Input::get($flag.'tg')] = (isset($session[$node][\Input::get($flag.'tg')]) && $session[$node][\Input::get($flag.'tg')] == 1) ? 0 : 1;
+			$this->Session->setData($session);
+			$this->redirect(preg_replace('/(&(amp;)?|\?)'.$flag.'tg=[^& ]*/i', '', \Environment::get('request')));
+		}
+
+		$objPage = $this->Database->prepare("SELECT id, alias, pageTitle, description, type, protected, published, start, stop, hide, title FROM tl_page WHERE id=?")
+								  ->limit(1)
+								  ->execute($id);
+		
+		
+		// Return if there is no result
+		if ($objPage->numRows < 1)
+		{
+			return '';
+		}
+
+		$return = '';
+		$intSpacing = 20;
+		$childs = array();
+
+		// Check whether there are child records
+		if (!$blnNoRecursion)
+		{
+			$objNodes = $this->Database->prepare("SELECT id FROM tl_page WHERE pid=? ORDER BY sorting")
+									   ->execute($id);
+
+			if ($objNodes->numRows)
+			{
+				$childs = $objNodes->fetchEach('id');
+			}
+		}
+
+		$return .= "\n    " . '<li class="'.(($objPage->type == 'root') ? 'tl_folder' : 'tl_file').'" onmouseover="Theme.hoverDiv(this, 1)" onmouseout="Theme.hoverDiv(this, 0)" onclick="Theme.toggleSelect(this)"><div class="tl_left" style="padding-left:'.($intMargin + $intSpacing).'px">';
+
+		$folderAttribute = 'style="margin-left:20px"';
+		$session[$node][$id] = is_numeric($session[$node][$id]) ? $session[$node][$id] : 0;
+		$level = ($intMargin / $intSpacing + 1);
+		$blnIsOpen = true;
+
+		if (!empty($childs))
+		{
+			$folderAttribute = '';
+			$img = $blnIsOpen ? 'folMinus.gif' : 'folPlus.gif';
+			$alt = $blnIsOpen ? $GLOBALS['TL_LANG']['MSC']['collapseNode'] : $GLOBALS['TL_LANG']['MSC']['expandNode'];
+			$return .= '<a href="'.$this->addToUrl($flag.'tg='.$id).'" title="'.specialchars($alt).'" onclick="return AjaxRequest.togglePagetree(this,\''.$xtnode.'_'.$id.'\',\''.$this->strField.'\',\''.$this->strName.'\','.$level.')">'.\Image::getHtml($img, '', 'style="margin-right:2px"').'</a>';
+		}
+
+		// Set the protection status
+		$objPage->protected = ($objPage->protected || $protectedPage);
+
+		// Add the current page
+		if (!empty($childs))
+		{
+			$return .= \Image::getHtml($this->getPageStatusIcon($objPage), '', $folderAttribute).' <span title="'.specialchars($objPage->title . ' (' . $objPage->alias . $GLOBALS['TL_CONFIG']['urlSuffix'] . ')').'">'.(($objPage->type == 'root') ? '<strong>' : '').$objPage->title.(($objPage->type == 'root') ? '</strong>' : '').'</span></div> <div class="tl_right">';
+		}
+		else
+		{
+			$return .= \Image::getHtml($this->getPageStatusIcon($objPage), '', $folderAttribute).' '.(($objPage->type == 'root') ? '<strong>' : '').$objPage->title.(($objPage->type == 'root') ? '</strong>' : '').'</div> <div class="tl_right">';
+		}
+
+		
+		if($objPage->type != 'root')
+		{
+			if($objPage->pageTitle == "")
+			{
+				$noEmptyTitle = $objPage->title;
+			}
+			else
+			{
+				$noEmptyTitle = $objPage->pageTitle;
+			}
+			
+			$return .= $this->getDisplayedText($id,$noEmptyTitle,$objPage->alias,$objPage->description,false);
+		}
+		$return .= '</div>';
+		$return .= '<div style="clear:both"></div></li>';
+
+		// Begin a new submenu
+		if (!empty($childs) && ($blnIsOpen || $this->Session->get('page_selector_search') != ''))
+		{
+			$return .= '<li class="parent" id="'.$node.'_'.$id.'"><ul class="level_'.$level.'">';
+
+			for ($k=0, $c=count($childs); $k<$c; $k++)
+			{
+				$return .= $this->renderPagetree($childs[$k], ($intMargin + $intSpacing), $objPage->protected);
+			}
+
+			$return .= '</ul></li>';
+		}
+
+		return $return;
+	}
+	
+	
+	
+	/**
+	 * Get all displayed text in articles (incl. title,alias,description)
+	 * @param int
+	 * @param integer
+	 * @param boolean
+	 * @param boolean
+	 * @return string
+	 */
+	protected function getDisplayedText($pageid,$title,$alias,$description,$isDetail)
+	{
+		$text = $title." ".str_replace("-"," ",$alias)." ".$description;
+		$objArticles = $this->Database->prepare("SELECT id FROM tl_article WHERE pid=? AND published=?")->execute($pageid,1);
+									   
+		while ($objArticles->next())
+		{	
+			$contentid = $objArticles->id; //-----------------------> to do - find all things with content
+			$objElements = $this->Database->prepare("SELECT text, headline FROM tl_content WHERE pid=? AND invisible!=?")->execute($contentid,1);
+									   
+			while ($objElements->next())
+			{
+				if($objElements->text)
+				{
+					$text .= " ".$objElements->text; 
+				}
+				
+				
+			}					   
+		}
+		
+		//clean up
+		$htmlspaces = array("</p>","</div>","</li>","<a>","</a>","[nbsp]");
+		$spaces = array(" "," "," "," "," "," ");
+		$text = str_replace($htmlspaces,$spaces,$text);
+		$text = preg_replace("/[^a-z0-9 äöü]/usi", "", strip_tags(strtolower($text)));
+		
+		// render page for details/pagetree
+		if($isDetail)
+		{
+			$keywordsArray = str_word_count($text, 1, "ÄäÜüÖöß");
+			$wordCount = str_word_count($text, 0, "ÄäÜüÖöß");
+			return array($this->keywordSorting($keywordsArray,$wordCount),$text);
+		}
+		else
+		{
+			return $this->analyzeTextTop3($text,$title,$pageid);
+		}
+	}
+	
+	
+	
+	/**
+	 * calculate keywords top 3
+	 * @param int
+	 * @param integer
+	 * @param boolean
+	 * @param boolean
+	 * @return string
+	 */
+	protected function analyzeTextTop3($text,$title,$pageid)
+	{	
+		#echo "<pre>"; print_r($this->keywordSorting($keywordsArray,$wordCount));
+		$rankString = "";
+		$rankStart = 1;
+		$keywordsArray = str_word_count($text, 1, "ÄäÜüÖöß");
+		$wordCount = str_word_count($text, 0, "ÄäÜüÖöß");
+		
+		// sort all keywords
+		$keywordArray = $this->keywordSorting($keywordsArray,$wordCount);
+		
+		// generate link for detailpage
+		$rankString .= '<a class="info" href="contao/main.php?do=keywordanalyst&popup=1&details='.$pageid.'" title="display all keywords" style="padding-left:3px" onclick="Backend.openModalIframe({\'width\':765,\'title\':\'Keywordanalyst for '.$title.'\',\'url\':this.href});return false"><img src="system/themes/default/images/show.gif" alt="Quellelement bearbeiten" style="vertical-align:top"></a>';
+		
+		// ### 2 WORDS ### 
+		$rankString .= '<div class="twoWordsWrapper">';
+
+		if($keywordArray[1])
+		{
+			foreach($keywordArray[1] as $oneword => $keyword)#
+			{
+				if($rankStart>3)
+				{
+					break;
+				}
+				$rankString .= "<span class='rank".$rankStart."'>".$rankStart.". ".$oneword."</span><br>";
+				$rankStart++;
+			}
+		}
+		
+		// ### 1 WORD ### 
+		$rankString .= '</div><div class="oneWordWrapper">';
+		$rankStart = 1;
+		
+		if($keywordArray[0])
+		{
+			foreach($keywordArray[0] as $oneword => $keyword)
+			{
+				if($rankStart>3)
+				{
+					break;
+				}
+				
+				$rankString .= "<span class='rank".$rankStart."'>".$rankStart.". ".$oneword."</span><br>";
+				$rankStart++;
+			}
+		}
+		
+		$rankString .= '</div>';
+		
+		return $rankString;
+		
+	}
+	
+	
+	/**
+	* calculate keywords top 3
+	* @param int
+	* @param integer
+	* @param boolean
+	* @param boolean
+	* @return string
+	*/
+	protected function keywordSorting($keywordsArray, $wordCount)
+	{
+		$keywordsSorted0 = ''; // 1 word match 
+		$keywordsSorted1 = ''; // 2 word phrase match 
+		$keywordsSorted2 = ''; // 3 word phrase match 
+		$keywordsSorted3 = ''; // 4 word phrase match 
+		
+		$replaceWords = explode(",","die,der,und,in,zu,den,das,nicht,von,sie,ist,des,sich,mit,dem,dass,daß,er,es,ein,ich,auf,so,eine,auch,als,an,nach,wie,im,für,man,aber,aus,durch,wenn,nur,war,noch,werden,bei,hat,wir,was,wird,sein,einen,welche,sind,oder,zur,um,haben,einer,mir,über,ihm,diese,einem,ihr,uns,da,zum,kann,doch,vor,dieser,mich,ihn,du,hatte,seine,mehr,am,denn,nun,unter,sehr,selbst,schon,hier,bis,habe,ihre,dann,ihnen,seiner,alle,wieder,meine,gegen,vom,ganz,einzelnen,wo,muss,ohne,eines,sei,ja,wurde,jetzt,immer,seinen,wohl,dieses,ihren,würde,diesen,sondern,weil,welcher,nichts,diesem,alles,waren,will,viel,mein,also,soll,worden,lassen,dies,machen,ihrer,weiter,Leben,recht,etwas,keine,seinem,ob,dir,allen,großen,müssen,welches,wäre,erst,einmal,hätte,zwei,dich,allein,während,anders,kein,damit,gar,euch,sollte,konnte,ersten,deren,zwischen,wollen,denen,dessen,sagen,bin,gut,darauf,wurden,weiß,gewesen,bald,weit,große,solche,hatten,eben,andern,beiden,ganze,anderen,wer,ihrem,zwar,dort,heute,werde,derselben,ganzen,vielleicht,meiner,nbsp,bzw,etc");
+			
+		for ($i = 0; $i < count($keywordsArray); $i++)
+		{
+			if(in_array($keywordsArray[$i],$replaceWords))
+			{
+				continue;
+			}
+			
+			#echo "<div>"; print_r($keywordsArray[$i]); echo "</div>";
+			// 1 word phrase match 
+			if ($i+0 < $wordCount)
+			{
+				$keywordsSorted0 .= $keywordsArray[$i].',';			
+			} 
+			// 2 word phrase match 
+			if ($i+1 < $wordCount)
+			{
+				$keywordsSorted1 .= $keywordsArray[$i].' '.$keywordsArray[$i+1].',';
+			} 
+			// 3 word phrase match 
+			if ($i+2 < $wordCount)
+			{
+				$keywordsSorted2 .= $keywordsArray[$i].' '.$keywordsArray[$i+1].' '.$keywordsArray[$i+2].',';			
+			} 
+			// 4 word phrase match 
+			if ($i+3 < $wordCount)
+			{
+				$keywordsSorted3 .= $keywordsArray[$i].' '.$keywordsArray[$i+1].' '.$keywordsArray[$i+2].' '.$keywordsArray[$i+3].',';
+			} 
+		}
+		
+		for ($i = 0; $i <= 3; $i++)
+		{
+			// Build array form string. 
+			${'keywordsSorted'.$i} = array_filter(explode(',', ${'keywordsSorted'.$i}));			
+			${'keywordsSorted'.$i} = array_count_values(${'keywordsSorted'.$i});
+			asort(${'keywordsSorted'.$i});
+			arsort(${'keywordsSorted'.$i});	
+			
+			foreach (${'keywordsSorted'.$i} as $key => $value)
+			{
+				${'keywordsSorted'.$i}[$key] = array($value, number_format((100 / $wordCount * $value),2));		
+			}
+		}	
+		
+		return array($keywordsSorted0, $keywordsSorted1, $keywordsSorted2, $keywordsSorted3);
+	}
+	
+}
